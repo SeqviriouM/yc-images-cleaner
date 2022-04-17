@@ -1,0 +1,35 @@
+{
+  "name": "yc-queue-notifier",
+  "version": "1.0.0",
+  "description": "Simple images cleaner for Yandex Cloud Compute",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:SeqviriouM/yc-images-cleaner.git"
+  },
+  "author": "Fedorenkov Roman <suffering123494@yandex.ru>",
+  "scripts": {
+    "lint": "npm-run-all --parallel lint:*",
+    "lint:js": "eslint src --quiet",
+    "lint:prettier": "prettier --check 'src/**/*.{js,jsx,ts,tsx}'",
+    "prepare": "husky install",
+    "start": "node src/index"
+  },
+  "dependencies": {
+    "@yandex-cloud/nodejs-sdk": "^2.0.1"
+  },
+  "devDependencies": {
+    "@yandex-cloud/eslint-config": "^1.0.1",
+    "@yandex-cloud/prettier-config": "^1.0.0",
+    "eslint": "^8.13.0",
+    "husky": "^7.0.4",
+    "lint-staged": "^12.3.8",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^2.6.2"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix --quiet",
+      "prettier --write"
+    ]
+  }
+}
