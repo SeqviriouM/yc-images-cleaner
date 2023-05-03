@@ -18,7 +18,7 @@ const SERVICE_ENDPOINTS_MAP = {
                 'yandex.cloud.compute.v1.instancegroup.InstanceGroupService',
                 'yandex.cloud.compute.v1.SnapshotScheduleService',
             ],
-            endpoint: getEnv('YC_COMPUTE_ENDPOINT'),
+            endpoint: getEnv('YC_COMPUTE_ENDPOINT', ''),
         },
     ],
     iam: [
@@ -33,7 +33,7 @@ const SERVICE_ENDPOINTS_MAP = {
                 'yandex.cloud.iam.v1.YandexPassportUserAccountService',
                 'yandex.cloud.iam.v1.awscompatibility.AccessKeyService',
             ],
-            endpoint: getEnv('YC_IAM_ENDPOINT'),
+            endpoint: getEnv('YC_IAM_ENDPOINT', ''),
         },
     ],
     'resource-manager': [
@@ -42,7 +42,7 @@ const SERVICE_ENDPOINTS_MAP = {
                 'yandex.cloud.resourcemanager.v1.CloudService',
                 'yandex.cloud.resourcemanager.v1.FolderService',
             ],
-            endpoint: getEnv('YC_RM_ENDPOINT'),
+            endpoint: getEnv('YC_RM_ENDPOINT', ''),
         },
     ],
 };

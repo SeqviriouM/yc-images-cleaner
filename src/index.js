@@ -25,7 +25,7 @@ const SA_ACCESS_KEY_ID = getEnv('YC_SA_ACCESS_KEY_ID');
 const SA_PRIVATE_KEY = getEnv('YC_SA_PRIVATE_KEY');
 const SAVED_RECENT_IMAGES_COUNT = getEnv('YC_KEEP_IMAGES_COUNT', 30);
 
-const isCustomResolver = Boolean(Number(getEnv('YC_CUSTOM_SERVICE_ENDPOINT_RESOLVER')));
+const isCustomResolver = Boolean(Number(getEnv('YC_CUSTOM_SERVICE_ENDPOINT_RESOLVER', 0)));
 const customServiceEndpointResolver = new ServiceEndpointResolver(SERVICE_ENDPOINTS_MAP);
 
 async function cleanImagesInFolder(client, folderId) {
@@ -72,8 +72,10 @@ async function cleaner() {
         );
 
         for (const folder of folders) {
-            cleanImagesInFolder(computeImagesClient, folder.id);
+            await cleanImagesInFolder(computeImagesClient, folder.id);
         }
+
+        console.log('Successfully removed old compute images');
     } catch (error) {
         console.error('An error has occurred while cleaning compute images', error);
     }
