@@ -1,6 +1,14 @@
-const {Session, cloudApi, serviceClients} = require('@yandex-cloud/nodejs-sdk');
+const path = require('path');
 
-const {getEnv} = require('./utils.js');
+const {Session, cloudApi, serviceClients} = require('@yandex-cloud/nodejs-sdk');
+const {ServiceEndpointResolver} = require('@yandex-cloud/nodejs-sdk/dist/service-endpoints');
+const dotEnv = require('dotenv');
+
+const dotEnvPath = path.resolve(__dirname, '../.env');
+dotEnv.config({path: dotEnvPath});
+
+const {SERVICE_ENDPOINTS_MAP} = require('./constants');
+const {getEnv} = require('./utils');
 
 const {
     compute: {
@@ -16,6 +24,9 @@ const SA_ID = getEnv('YC_SA_ID');
 const SA_ACCESS_KEY_ID = getEnv('YC_SA_ACCESS_KEY_ID');
 const SA_PRIVATE_KEY = getEnv('YC_SA_PRIVATE_KEY');
 const SAVED_RECENT_IMAGES_COUNT = getEnv('YC_KEEP_IMAGES_COUNT', 30);
+
+const isCustomResolver = Boolean(Number(getEnv('YC_CUSTOM_SERVICE_ENDPOINT_RESOLVER')));
+const customServiceEndpointResolver = new ServiceEndpointResolver(SERVICE_ENDPOINTS_MAP);
 
 async function cleanImagesInFolder(client, folderId) {
     try {
@@ -36,17 +47,22 @@ async function cleanImagesInFolder(client, folderId) {
         return Promise.all(imagePromises);
     } catch (error) {
         console.error('An error has occurred while clean compute images in folder', error);
+
+        return Promise.reject(error);
     }
 }
 
 (async () => {
-    const session = new Session({
-        serviceAccountJson: {
-            serviceAccountId: SA_ID,
-            accessKeyId: SA_ACCESS_KEY_ID,
-            privateKey: SA_PRIVATE_KEY,
+    const session = new Session(
+        {
+            serviceAccountJson: {
+                serviceAccountId: SA_ID,
+                accessKeyId: SA_ACCESS_KEY_ID,
+                privateKey: SA_PRIVATE_KEY,
+            },
         },
-    });
+        isCustomResolver ? customServiceEndpointResolver : undefined,
+    );
     const rmFoldersClient = session.client(serviceClients.FolderServiceClient);
     const computeImagesClient = session.client(serviceClients.ComputeImageServiceClient);
 

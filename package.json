@@ -15,7 +15,8 @@
     "start": "node src/index"
   },
   "dependencies": {
-    "@yandex-cloud/nodejs-sdk": "^2.0.1"
+    "@yandex-cloud/nodejs-sdk": "^3.0.0-alpha.1",
+    "dotenv": "^16.0.3"
   },
   "devDependencies": {
     "@gravity-ui/eslint-config": "^2.0.0",
