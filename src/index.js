@@ -52,7 +52,7 @@ async function cleanImagesInFolder(client, folderId) {
     }
 }
 
-(async () => {
+async function cleaner() {
     const session = new Session(
         {
             serviceAccountJson: {
@@ -77,4 +77,11 @@ async function cleanImagesInFolder(client, folderId) {
     } catch (error) {
         console.error('An error has occurred while cleaning compute images', error);
     }
-})();
+}
+
+// For debug purpose
+// (async () => {
+//     await cleaner();
+// })();
+
+module.exports = {cleaner};
