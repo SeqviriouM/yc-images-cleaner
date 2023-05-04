@@ -24,11 +24,12 @@ const SA_ID = getEnv('YC_SA_ID');
 const SA_ACCESS_KEY_ID = getEnv('YC_SA_ACCESS_KEY_ID');
 const SA_PRIVATE_KEY = getEnv('YC_SA_PRIVATE_KEY');
 const SAVED_RECENT_IMAGES_COUNT = getEnv('YC_KEEP_IMAGES_COUNT', 30);
+const MAX_OPERATIONS_IN_CLOUD = getEnv('YC_MAX_OPERATIONS_IN_CLOUD', 30);
 
 const isCustomResolver = Boolean(Number(getEnv('YC_CUSTOM_SERVICE_ENDPOINT_RESOLVER', 0)));
 const customServiceEndpointResolver = new ServiceEndpointResolver(SERVICE_ENDPOINTS_MAP);
 
-async function cleanImagesInFolder(client, folderId) {
+async function getImagesToCleanInFolder(client, folderId) {
     try {
         const {images} = await client.list(
             ListImagesRequest.fromPartial({pageSize: DEFAULT_PAGE_SIZE, folderId}),
@@ -39,14 +40,9 @@ async function cleanImagesInFolder(client, folderId) {
             return new Date(imageB.createdAt).getTime() - new Date(imageA.createdAt).getTime();
         });
 
-        // Delete old images
-        const imagePromises = images
-            .slice(SAVED_RECENT_IMAGES_COUNT)
-            .map((image) => client.delete(DeleteImageRequest.fromPartial({imageId: image.id})));
-
-        return Promise.all(imagePromises);
+        return images.slice(SAVED_RECENT_IMAGES_COUNT);
     } catch (error) {
-        console.error('An error has occurred while clean compute images in folder', error);
+        console.error('An error has occurred while get compute images to clean in folder', error);
 
         return Promise.reject(error);
     }
@@ -71,11 +67,28 @@ async function cleaner() {
             ListFoldersRequest.fromPartial({pageSize: DEFAULT_PAGE_SIZE, cloudId: CLOUD_ID}),
         );
 
+        const imagesToClean = [];
         for (const folder of folders) {
-            await cleanImagesInFolder(computeImagesClient, folder.id);
+            const folderImages = await getImagesToCleanInFolder(computeImagesClient, folder.id);
+
+            if (imagesToClean.length + folderImages.length > MAX_OPERATIONS_IN_CLOUD) {
+                // If folderImages contains more images that can be simultaneously deleted than then only the valid part is taken
+                const endSliceIndex = MAX_OPERATIONS_IN_CLOUD - imagesToClean.length;
+                imagesToClean.push(...folderImages.slice(0, endSliceIndex));
+                break;
+            } else {
+                imagesToClean.push(...folderImages);
+            }
         }
 
-        console.log('Successfully removed old compute images');
+        // Delete old images
+        const imagePromises = imagesToClean.map((image) =>
+            computeImagesClient.delete(DeleteImageRequest.fromPartial({imageId: image.id})),
+        );
+
+        await Promise.all(imagePromises);
+
+        console.log(`Successfully removed ${imagesToClean.length} old compute images`);
     } catch (error) {
         console.error('An error has occurred while cleaning compute images', error);
     }
