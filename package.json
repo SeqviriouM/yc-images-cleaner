@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "@yandex-cloud/nodejs-sdk": "^3.0.0-alpha.1",
-    "dotenv": "^16.0.3"
+    "dotenv": "^16.0.3",
+    "node-cron": "^3.0.2"
   },
   "devDependencies": {
     "@gravity-ui/eslint-config": "^2.0.0",

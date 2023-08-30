@@ -3,6 +3,7 @@ const path = require('path');
 const {Session, cloudApi, serviceClients} = require('@yandex-cloud/nodejs-sdk');
 const {ServiceEndpointResolver} = require('@yandex-cloud/nodejs-sdk/dist/service-endpoints');
 const dotEnv = require('dotenv');
+const cron = require('node-cron');
 
 const dotEnvPath = path.resolve(__dirname, '../.env');
 dotEnv.config({path: dotEnvPath});
@@ -99,4 +100,10 @@ async function cleaner() {
 //     await cleaner();
 // })();
 
-module.exports = {cleaner};
+// For cron purpose
+cron.schedule('0 12-18 * * 0-5', async () => {
+    await cleaner();
+});
+
+// For module purpose
+// module.exports = {cleaner};
