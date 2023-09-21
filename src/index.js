@@ -20,10 +20,17 @@ const {
     },
 } = cloudApi;
 const DEFAULT_PAGE_SIZE = 1000;
+
 const CLOUD_ID = getEnv('YC_CLOUD_ID');
 const SA_ID = getEnv('YC_SA_ID');
 const SA_ACCESS_KEY_ID = getEnv('YC_SA_ACCESS_KEY_ID');
 const SA_PRIVATE_KEY = getEnv('YC_SA_PRIVATE_KEY');
+
+const ORG_CLOUD_ID = getEnv('YC_ORG_CLOUD_ID');
+const ORG_SA_ID = getEnv('YC_ORG_SA_ID');
+const ORG_SA_ACCESS_KEY_ID = getEnv('YC_ORG_SA_ACCESS_KEY_ID');
+const ORG_SA_PRIVATE_KEY = getEnv('YC_ORG_SA_PRIVATE_KEY');
+
 const SAVED_RECENT_IMAGES_COUNT = getEnv('YC_KEEP_IMAGES_COUNT', 30);
 const MAX_OPERATIONS_IN_CLOUD = getEnv('YC_MAX_OPERATIONS_IN_CLOUD', 30);
 
@@ -49,13 +56,13 @@ async function getImagesToCleanInFolder(client, folderId) {
     }
 }
 
-async function cleaner() {
+async function cleaner(cloudId, saId, saKeyId, saPrivateKey) {
     const session = new Session(
         {
             serviceAccountJson: {
-                serviceAccountId: SA_ID,
-                accessKeyId: SA_ACCESS_KEY_ID,
-                privateKey: SA_PRIVATE_KEY,
+                serviceAccountId: saId,
+                accessKeyId: saKeyId,
+                privateKey: saPrivateKey,
             },
         },
         isCustomResolver ? customServiceEndpointResolver : undefined,
@@ -65,7 +72,7 @@ async function cleaner() {
 
     try {
         const {folders} = await rmFoldersClient.list(
-            ListFoldersRequest.fromPartial({pageSize: DEFAULT_PAGE_SIZE, cloudId: CLOUD_ID}),
+            ListFoldersRequest.fromPartial({pageSize: DEFAULT_PAGE_SIZE, cloudId}),
         );
 
         const imagesToClean = [];
@@ -97,12 +104,14 @@ async function cleaner() {
 
 // For debug purpose
 // (async () => {
-//     await cleaner();
+//     await cleaner(CLOUD_ID, SA_ID, SA_ACCESS_KEY_ID, SA_PRIVATE_KEY); // console
+//     await cleaner(ORG_CLOUD_ID, ORG_SA_ID, ORG_SA_ACCESS_KEY_ID, ORG_SA_PRIVATE_KEY); // org
 // })();
 
 // For cron purpose
 cron.schedule('0 12-18 * * 0-5', async () => {
-    await cleaner();
+    await cleaner(CLOUD_ID, SA_ID, SA_ACCESS_KEY_ID, SA_PRIVATE_KEY); // console
+    await cleaner(ORG_CLOUD_ID, ORG_SA_ID, ORG_SA_ACCESS_KEY_ID, ORG_SA_PRIVATE_KEY); // org
 });
 
 // For module purpose
