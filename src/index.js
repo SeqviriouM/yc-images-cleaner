@@ -8,7 +8,7 @@ const cron = require('node-cron');
 const dotEnvPath = path.resolve(__dirname, '../.env');
 dotEnv.config({path: dotEnvPath});
 
-const {serviceEndpointsMap} = require('./constants');
+const {getServiceEndpointsMap} = require('./constants');
 const {getEnv} = require('./utils');
 
 const {
@@ -41,7 +41,7 @@ const defaultIsCustomResolver = Boolean(Number(getEnv('YC_CUSTOM_SERVICE_ENDPOIN
 const defaultComputeEndpoint = getEnv('YC_COMPUTE_ENDPOINT', '');
 const defaultIamEndpoint = getEnv('YC_IAM_ENDPOINT', '');
 const defaultRmEndpoint = getEnv('YC_RM_ENDPOINT', '');
-const defaultCustomServiceEndpointResolver = new ServiceEndpointResolver(serviceEndpointsMap({
+const defaultCustomServiceEndpointResolver = new ServiceEndpointResolver(getServiceEndpointsMap({
     computeEndpoint: defaultComputeEndpoint,
     iamEndpoint: defaultIamEndpoint,
     rmEndpoint: defaultRmEndpoint,
@@ -165,7 +165,7 @@ cron.schedule('0 12-18 * * 0-5', async () => {
             const computeEndpoint = getEnv(`YC_COMPUTE_ENDPOINT_${envIndex}`, '');
             const iamEndpoint = getEnv(`YC_IAM_ENDPOINT_${envIndex}`, '');
             const rmEndpoint = getEnv(`YC_RM_ENDPOINT_${envIndex}`, '');
-            const customServiceEndpointResolver = new ServiceEndpointResolver(serviceEndpointsMap({
+            const customServiceEndpointResolver = new ServiceEndpointResolver(getServiceEndpointsMap({
                 computeEndpoint: computeEndpoint || defaultComputeEndpoint,
                 iamEndpoint: iamEndpoint || defaultIamEndpoint,
                 rmEndpoint: rmEndpoint || defaultRmEndpoint,
