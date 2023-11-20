@@ -1,6 +1,8 @@
 const {getEnv} = require('./utils');
 
-const SERVICE_ENDPOINTS_MAP = {
+const serviceEndpointsMap = ({
+    computeEndpoint, iamEndpoint, rmEndpoint,
+}) = {
     compute: [
         {
             serviceIds: [
@@ -18,7 +20,7 @@ const SERVICE_ENDPOINTS_MAP = {
                 'yandex.cloud.compute.v1.instancegroup.InstanceGroupService',
                 'yandex.cloud.compute.v1.SnapshotScheduleService',
             ],
-            endpoint: getEnv('YC_COMPUTE_ENDPOINT', ''),
+            endpoint: computeEndpoint,
         },
     ],
     iam: [
@@ -33,7 +35,7 @@ const SERVICE_ENDPOINTS_MAP = {
                 'yandex.cloud.iam.v1.YandexPassportUserAccountService',
                 'yandex.cloud.iam.v1.awscompatibility.AccessKeyService',
             ],
-            endpoint: getEnv('YC_IAM_ENDPOINT', ''),
+            endpoint: iamEndpoint,
         },
     ],
     'resource-manager': [
@@ -42,9 +44,9 @@ const SERVICE_ENDPOINTS_MAP = {
                 'yandex.cloud.resourcemanager.v1.CloudService',
                 'yandex.cloud.resourcemanager.v1.FolderService',
             ],
-            endpoint: getEnv('YC_RM_ENDPOINT', ''),
+            endpoint: rmEndpoint,
         },
     ],
 };
 
-module.exports = {SERVICE_ENDPOINTS_MAP};
+module.exports = {serviceEndpointsMap};
