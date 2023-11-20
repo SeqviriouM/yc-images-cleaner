@@ -25,13 +25,13 @@ const CLOUD_ID = getEnv('YC_CLOUD_ID', '');
 const SA_ID = getEnv('YC_SA_ID', '');
 const SA_ACCESS_KEY_ID = getEnv('YC_SA_ACCESS_KEY_ID', '');
 const SA_PRIVATE_KEY = getEnv('YC_SA_PRIVATE_KEY', '');
+const FOLDER_IDS = getEnv('YC_FOLDER_IDS', '');
 
 const ORG_CLOUD_ID = getEnv('YC_ORG_CLOUD_ID', '');
 const ORG_SA_ID = getEnv('YC_ORG_SA_ID', '');
 const ORG_SA_ACCESS_KEY_ID = getEnv('YC_ORG_SA_ACCESS_KEY_ID', '');
 const ORG_SA_PRIVATE_KEY = getEnv('YC_ORG_SA_PRIVATE_KEY', '');
-
-const envConfig = getEnv('YC_ENV_CONFIG', '');
+const ORG_FOLDER_IDS = getEnv('YC_ORG_FOLDER_IDS', '');
 
 const SAVED_RECENT_IMAGES_COUNT = getEnv('YC_KEEP_IMAGES_COUNT', 30);
 const MAX_OPERATIONS_IN_CLOUD = getEnv('YC_MAX_OPERATIONS_IN_CLOUD', 30);
@@ -117,22 +117,36 @@ cron.schedule('0 12-18 * * 0-5', async () => {
     const cloudEnv = CLOUD_ID && SA_ID && SA_ACCESS_KEY_ID && SA_PRIVATE_KEY;
     const orgEnv = ORG_CLOUD_ID && ORG_SA_ID && ORG_SA_ACCESS_KEY_ID && ORG_SA_PRIVATE_KEY;
 
-    if (!cloudEnv || !orgEnv || !envConfig) {
-        throw new Error(`Env variables is not defined`);
-    }
-
     if (cloudEnv) {
-        await cleaner(CLOUD_ID, SA_ID, SA_ACCESS_KEY_ID, SA_PRIVATE_KEY); // console
+        await cleaner(CLOUD_ID, SA_ID, SA_ACCESS_KEY_ID, SA_PRIVATE_KEY, FOLDER_IDS); // console
     }
 
     if (orgEnv) {
-        await cleaner(ORG_CLOUD_ID, ORG_SA_ID, ORG_SA_ACCESS_KEY_ID, ORG_SA_PRIVATE_KEY); // org
+        await cleaner(ORG_CLOUD_ID, ORG_SA_ID, ORG_SA_ACCESS_KEY_ID, ORG_SA_PRIVATE_KEY, ORG_FOLDER_IDS); // org
     }
 
-    if (envConfig) {
-        await Promise.all(envConfig.map(async (config) => {
-            await cleaner(config.cloudId, config.saId, config.saAccessId, config.saPrivateKey, config.folderIds);
-        }));   
+    let envIndex = 0;
+    while (true) {
+        try {
+            const cloudId = getEnv(`YC_CLOUD_ID_${envIndex}`);
+            const saId = getEnv(`YC_SA_ID_${envIndex}`);
+            const saAccessKeyId = getEnv(`YC_SA_ACCESS_KEY_ID_${envIndex}`);
+            const saPrivateKey = getEnv(`YC_SA_PRIVATE_KEY_${envIndex}`);
+            const folderIds = getEnv(`YC_SA_FOLDER_IDS_${envIndex}`);
+
+            if (!cloudId || !saId || !saAccessKeyId || !saPrivateKey) {
+                break;
+            }
+
+            envIndex++;
+            await cleaner(cloudId, saId, saAccessKeyId, saPrivateKey, folderIds);
+        } catch (error) {
+            break;
+        } 
+    }
+
+    if (!cloudEnv || !orgEnv || !envIndex) {
+        throw new Error(`Env variables are not defined`);
     }
 });
 
