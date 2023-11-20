@@ -132,7 +132,7 @@ cron.schedule('0 12-18 * * 0-5', async () => {
             const saId = getEnv(`YC_SA_ID_${envIndex}`);
             const saAccessKeyId = getEnv(`YC_SA_ACCESS_KEY_ID_${envIndex}`);
             const saPrivateKey = getEnv(`YC_SA_PRIVATE_KEY_${envIndex}`);
-            const folderIds = getEnv(`YC_SA_FOLDER_IDS_${envIndex}`);
+            const folderIds = getEnv(`YC_FOLDER_IDS_${envIndex}`);
 
             if (!cloudId || !saId || !saAccessKeyId || !saPrivateKey) {
                 break;
