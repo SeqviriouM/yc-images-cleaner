@@ -8,4 +8,12 @@ Mini project for cleaning compute images in cloud. A service account with role `
 2. Install dependencies using the command `npm ci`.
 3. Launch the application using the command `npm start`.
 
+## Config Interface
 
+interface EnvConfig: {
+    cloudId: string;
+    saId: string;
+    saAccessId: string;
+    saPrivateKey: string;
+    folderIds?: string[];
+}[];
