@@ -1,6 +1,4 @@
-function getServiceEndpointsMap({
-    computeEndpoint, iamEndpoint, rmEndpoint,
-}) {
+function getServiceEndpointsMap({computeEndpoint, iamEndpoint, rmEndpoint}) {
     return {
         compute: [
             {
@@ -46,7 +44,7 @@ function getServiceEndpointsMap({
                 endpoint: rmEndpoint,
             },
         ],
-    }
+    };
 }
 
 module.exports = {getServiceEndpointsMap};
