@@ -126,7 +126,7 @@ async function cleaner({
 }
 
 // For cron purpose
-cron.schedule('* * * * 0-5', async () => {
+cron.schedule('0 12-18 * * 0-5', async () => {
     const cloudEnv = CLOUD_ID && SA_ID && SA_ACCESS_KEY_ID && SA_PRIVATE_KEY;
     const orgEnv = ORG_CLOUD_ID && ORG_SA_ID && ORG_SA_ACCESS_KEY_ID && ORG_SA_PRIVATE_KEY;
 
