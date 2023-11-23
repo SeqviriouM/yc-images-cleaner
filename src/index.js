@@ -21,15 +21,11 @@ const {
 } = cloudApi;
 const DEFAULT_PAGE_SIZE = 1000;
 
-const CLOUD_ID = getEnv('YC_CLOUD_ID');
-const SA_ID = getEnv('YC_SA_ID');
-const SA_ACCESS_KEY_ID = getEnv('YC_SA_ACCESS_KEY_ID');
-const SA_PRIVATE_KEY = getEnv('YC_SA_PRIVATE_KEY');
-
-const ORG_CLOUD_ID = getEnv('YC_ORG_CLOUD_ID');
-const ORG_SA_ID = getEnv('YC_ORG_SA_ID');
-const ORG_SA_ACCESS_KEY_ID = getEnv('YC_ORG_SA_ACCESS_KEY_ID');
-const ORG_SA_PRIVATE_KEY = getEnv('YC_ORG_SA_PRIVATE_KEY');
+const CLOUD_ID = getEnv('YC_CLOUD_ID', '');
+const SA_ID = getEnv('YC_SA_ID', '');
+const SA_ACCESS_KEY_ID = getEnv('YC_SA_ACCESS_KEY_ID', '');
+const SA_PRIVATE_KEY = getEnv('YC_SA_PRIVATE_KEY', '');
+const FOLDER_IDS = getEnv('YC_FOLDER_IDS', '');
 
 const SAVED_RECENT_IMAGES_COUNT = getEnv('YC_KEEP_IMAGES_COUNT', 30);
 const MAX_OPERATIONS_IN_CLOUD = getEnv('YC_MAX_OPERATIONS_IN_CLOUD', 30);
@@ -56,7 +52,7 @@ async function getImagesToCleanInFolder(client, folderId) {
     }
 }
 
-async function cleaner(cloudId, saId, saKeyId, saPrivateKey) {
+async function cleaner({cloudId, saId, saKeyId, saPrivateKey, folderIds}) {
     const session = new Session(
         {
             serviceAccountJson: {
@@ -75,8 +71,12 @@ async function cleaner(cloudId, saId, saKeyId, saPrivateKey) {
             ListFoldersRequest.fromPartial({pageSize: DEFAULT_PAGE_SIZE, cloudId}),
         );
 
+        const filteredFolders = folderIds
+            ? folders.filter(({id}) => folderIds.includes(id))
+            : folders;
+
         const imagesToClean = [];
-        for (const folder of folders) {
+        for (const folder of filteredFolders) {
             const folderImages = await getImagesToCleanInFolder(computeImagesClient, folder.id);
 
             if (imagesToClean.length + folderImages.length > MAX_OPERATIONS_IN_CLOUD) {
@@ -102,16 +102,49 @@ async function cleaner(cloudId, saId, saKeyId, saPrivateKey) {
     }
 }
 
-// For debug purpose
-// (async () => {
-//     await cleaner(CLOUD_ID, SA_ID, SA_ACCESS_KEY_ID, SA_PRIVATE_KEY); // console
-//     await cleaner(ORG_CLOUD_ID, ORG_SA_ID, ORG_SA_ACCESS_KEY_ID, ORG_SA_PRIVATE_KEY); // org
-// })();
-
 // For cron purpose
 cron.schedule('0 12-18 * * 0-5', async () => {
-    await cleaner(CLOUD_ID, SA_ID, SA_ACCESS_KEY_ID, SA_PRIVATE_KEY); // console
-    await cleaner(ORG_CLOUD_ID, ORG_SA_ID, ORG_SA_ACCESS_KEY_ID, ORG_SA_PRIVATE_KEY); // org
+    const cloudEnv = CLOUD_ID && SA_ID && SA_ACCESS_KEY_ID && SA_PRIVATE_KEY;
+
+    if (cloudEnv) {
+        await cleaner({
+            cloudId: CLOUD_ID,
+            saId: SA_ID,
+            saKeyId: SA_ACCESS_KEY_ID,
+            saPrivateKey: SA_PRIVATE_KEY,
+            folderIds: FOLDER_IDS,
+        }); // console
+    }
+
+    let envIndex = 0;
+    while (true) {
+        try {
+            const cloudId = getEnv(`YC_CLOUD_ID_${envIndex}`);
+            const saId = getEnv(`YC_SA_ID_${envIndex}`);
+            const saKeyId = getEnv(`YC_SA_ACCESS_KEY_ID_${envIndex}`);
+            const saPrivateKey = getEnv(`YC_SA_PRIVATE_KEY_${envIndex}`);
+            const folderIds = getEnv(`YC_FOLDER_IDS_${envIndex}`, '');
+
+            if (!cloudId || !saId || !saKeyId || !saPrivateKey) {
+                break;
+            }
+
+            envIndex++;
+            await cleaner({
+                cloudId,
+                saId,
+                saKeyId,
+                saPrivateKey,
+                folderIds,
+            });
+        } catch (error) {
+            break;
+        }
+    }
+
+    if (!cloudEnv && !envIndex) {
+        console.error('Env variables are not defined');
+    }
 });
 
 // For module purpose

@@ -8,4 +8,6 @@ Mini project for cleaning compute images in cloud. A service account with role `
 2. Install dependencies using the command `npm ci`.
 3. Launch the application using the command `npm start`.
 
+You can filter folders by YC_FOLDER_IDS variable. List them separated by commas.
 
+You can add as many bundles of variables as you want. You should use same variables with index. Index start from '0': (YC_CLOUD_ID_0, YC_SA_ID_0, YC_SA_ACCESS_KEY_ID_0, YC_SA_PRIVATE_KEY_0, YC_FOLDER_IDS_0)
