@@ -27,12 +27,6 @@ const SA_ACCESS_KEY_ID = getEnv('YC_SA_ACCESS_KEY_ID', '');
 const SA_PRIVATE_KEY = getEnv('YC_SA_PRIVATE_KEY', '');
 const FOLDER_IDS = getEnv('YC_FOLDER_IDS', '');
 
-const ORG_CLOUD_ID = getEnv('YC_ORG_CLOUD_ID', '');
-const ORG_SA_ID = getEnv('YC_ORG_SA_ID', '');
-const ORG_SA_ACCESS_KEY_ID = getEnv('YC_ORG_SA_ACCESS_KEY_ID', '');
-const ORG_SA_PRIVATE_KEY = getEnv('YC_ORG_SA_PRIVATE_KEY', '');
-const ORG_FOLDER_IDS = getEnv('YC_ORG_FOLDER_IDS', '');
-
 const SAVED_RECENT_IMAGES_COUNT = getEnv('YC_KEEP_IMAGES_COUNT', 30);
 const MAX_OPERATIONS_IN_CLOUD = getEnv('YC_MAX_OPERATIONS_IN_CLOUD', 30);
 
@@ -41,13 +35,15 @@ const defaultIsCustomResolver = Boolean(Number(getEnv('YC_CUSTOM_SERVICE_ENDPOIN
 const defaultComputeEndpoint = getEnv('YC_COMPUTE_ENDPOINT', '');
 const defaultIamEndpoint = getEnv('YC_IAM_ENDPOINT', '');
 const defaultRmEndpoint = getEnv('YC_RM_ENDPOINT', '');
-const defaultCustomServiceEndpointResolver = new ServiceEndpointResolver(
-    getServiceEndpointsMap({
-        computeEndpoint: defaultComputeEndpoint,
-        iamEndpoint: defaultIamEndpoint,
-        rmEndpoint: defaultRmEndpoint,
-    }),
-);
+const defaultCustomServiceEndpointResolver = defaultIsCustomResolver
+    ? new ServiceEndpointResolver(
+          getServiceEndpointsMap({
+              computeEndpoint: defaultComputeEndpoint,
+              iamEndpoint: defaultIamEndpoint,
+              rmEndpoint: defaultRmEndpoint,
+          }),
+      )
+    : undefined;
 
 async function getImagesToCleanInFolder(client, folderId) {
     try {
@@ -74,7 +70,6 @@ async function cleaner({
     saKeyId,
     saPrivateKey,
     folderIds,
-    isCustomResolver = defaultIsCustomResolver,
     customServiceEndpointResolver = defaultCustomServiceEndpointResolver,
 }) {
     const session = new Session(
@@ -85,7 +80,7 @@ async function cleaner({
                 privateKey: saPrivateKey,
             },
         },
-        isCustomResolver ? customServiceEndpointResolver : undefined,
+        customServiceEndpointResolver,
     );
     const rmFoldersClient = session.client(serviceClients.FolderServiceClient);
     const computeImagesClient = session.client(serviceClients.ComputeImageServiceClient);
@@ -95,8 +90,9 @@ async function cleaner({
             ListFoldersRequest.fromPartial({pageSize: DEFAULT_PAGE_SIZE, cloudId}),
         );
 
-        const filteredFolders =
-            folderIds ? folders.filter(({id}) => folderIds.includes(id)) : folders;
+        const filteredFolders = folderIds
+            ? folders.filter(({id}) => folderIds.includes(id))
+            : folders;
 
         const imagesToClean = [];
         for (const folder of filteredFolders) {
@@ -128,7 +124,6 @@ async function cleaner({
 // For cron purpose
 cron.schedule('0 12-18 * * 0-5', async () => {
     const cloudEnv = CLOUD_ID && SA_ID && SA_ACCESS_KEY_ID && SA_PRIVATE_KEY;
-    const orgEnv = ORG_CLOUD_ID && ORG_SA_ID && ORG_SA_ACCESS_KEY_ID && ORG_SA_PRIVATE_KEY;
 
     if (cloudEnv) {
         await cleaner({
@@ -138,16 +133,6 @@ cron.schedule('0 12-18 * * 0-5', async () => {
             saPrivateKey: SA_PRIVATE_KEY,
             folderIds: FOLDER_IDS,
         }); // console
-    }
-
-    if (orgEnv) {
-        await cleaner({
-            cloudId: ORG_CLOUD_ID,
-            saId: ORG_SA_ID,
-            saKeyId: ORG_SA_ACCESS_KEY_ID,
-            saPrivateKey: ORG_SA_PRIVATE_KEY,
-            folderIds: ORG_FOLDER_IDS,
-        }); // org
     }
 
     let envIndex = 0;
@@ -163,21 +148,26 @@ cron.schedule('0 12-18 * * 0-5', async () => {
                 break;
             }
 
-            const envCustomResolver = getEnv(`YC_CUSTOM_SERVICE_ENDPOINT_RESOLVER_${envIndex}`, '');
+            const envCustomResolver = getEnv(
+                `YC_CUSTOM_SERVICE_ENDPOINT_RESOLVER_${envIndex}`,
+                null,
+            );
             const isCustomResolver =
-                envCustomResolver === ''
+                envCustomResolver === null
                     ? defaultIsCustomResolver
                     : Boolean(Number(envCustomResolver));
             const computeEndpoint = getEnv(`YC_COMPUTE_ENDPOINT_${envIndex}`, '');
             const iamEndpoint = getEnv(`YC_IAM_ENDPOINT_${envIndex}`, '');
             const rmEndpoint = getEnv(`YC_RM_ENDPOINT_${envIndex}`, '');
-            const customServiceEndpointResolver = new ServiceEndpointResolver(
-                getServiceEndpointsMap({
-                    computeEndpoint: computeEndpoint || defaultComputeEndpoint,
-                    iamEndpoint: iamEndpoint || defaultIamEndpoint,
-                    rmEndpoint: rmEndpoint || defaultRmEndpoint,
-                }),
-            );
+            const customServiceEndpointResolver = isCustomResolver
+                ? new ServiceEndpointResolver(
+                      getServiceEndpointsMap({
+                          computeEndpoint: computeEndpoint || defaultComputeEndpoint,
+                          iamEndpoint: iamEndpoint || defaultIamEndpoint,
+                          rmEndpoint: rmEndpoint || defaultRmEndpoint,
+                      }),
+                  )
+                : undefined;
 
             envIndex++;
             await cleaner({
@@ -186,7 +176,6 @@ cron.schedule('0 12-18 * * 0-5', async () => {
                 saKeyId,
                 saPrivateKey,
                 folderIds,
-                isCustomResolver,
                 customServiceEndpointResolver,
             });
         } catch (error) {
@@ -194,7 +183,7 @@ cron.schedule('0 12-18 * * 0-5', async () => {
         }
     }
 
-    if (!cloudEnv && !orgEnv && !envIndex) {
+    if (!cloudEnv && !envIndex) {
         console.error('Env variables are not defined');
     }
 });
