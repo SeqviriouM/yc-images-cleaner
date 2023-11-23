@@ -8,7 +8,7 @@ const cron = require('node-cron');
 const dotEnvPath = path.resolve(__dirname, '../.env');
 dotEnv.config({path: dotEnvPath});
 
-const {getServiceEndpointsMap} = require('./constants');
+const {SERVICE_ENDPOINTS_MAP} = require('./constants');
 const {getEnv} = require('./utils');
 
 const {
@@ -30,20 +30,8 @@ const FOLDER_IDS = getEnv('YC_FOLDER_IDS', '');
 const SAVED_RECENT_IMAGES_COUNT = getEnv('YC_KEEP_IMAGES_COUNT', 30);
 const MAX_OPERATIONS_IN_CLOUD = getEnv('YC_MAX_OPERATIONS_IN_CLOUD', 30);
 
-const defaultIsCustomResolver = Boolean(Number(getEnv('YC_CUSTOM_SERVICE_ENDPOINT_RESOLVER', 0)));
-
-const defaultComputeEndpoint = getEnv('YC_COMPUTE_ENDPOINT', '');
-const defaultIamEndpoint = getEnv('YC_IAM_ENDPOINT', '');
-const defaultRmEndpoint = getEnv('YC_RM_ENDPOINT', '');
-const defaultCustomServiceEndpointResolver = defaultIsCustomResolver
-    ? new ServiceEndpointResolver(
-          getServiceEndpointsMap({
-              computeEndpoint: defaultComputeEndpoint,
-              iamEndpoint: defaultIamEndpoint,
-              rmEndpoint: defaultRmEndpoint,
-          }),
-      )
-    : undefined;
+const isCustomResolver = Boolean(Number(getEnv('YC_CUSTOM_SERVICE_ENDPOINT_RESOLVER', 0)));
+const customServiceEndpointResolver = new ServiceEndpointResolver(SERVICE_ENDPOINTS_MAP);
 
 async function getImagesToCleanInFolder(client, folderId) {
     try {
@@ -64,14 +52,7 @@ async function getImagesToCleanInFolder(client, folderId) {
     }
 }
 
-async function cleaner({
-    cloudId,
-    saId,
-    saKeyId,
-    saPrivateKey,
-    folderIds,
-    customServiceEndpointResolver = defaultCustomServiceEndpointResolver,
-}) {
+async function cleaner({cloudId, saId, saKeyId, saPrivateKey, folderIds}) {
     const session = new Session(
         {
             serviceAccountJson: {
@@ -80,7 +61,7 @@ async function cleaner({
                 privateKey: saPrivateKey,
             },
         },
-        customServiceEndpointResolver,
+        isCustomResolver ? customServiceEndpointResolver : undefined,
     );
     const rmFoldersClient = session.client(serviceClients.FolderServiceClient);
     const computeImagesClient = session.client(serviceClients.ComputeImageServiceClient);
@@ -148,27 +129,6 @@ cron.schedule('0 12-18 * * 0-5', async () => {
                 break;
             }
 
-            const envCustomResolver = getEnv(
-                `YC_CUSTOM_SERVICE_ENDPOINT_RESOLVER_${envIndex}`,
-                null,
-            );
-            const isCustomResolver =
-                envCustomResolver === null
-                    ? defaultIsCustomResolver
-                    : Boolean(Number(envCustomResolver));
-            const computeEndpoint = getEnv(`YC_COMPUTE_ENDPOINT_${envIndex}`, '');
-            const iamEndpoint = getEnv(`YC_IAM_ENDPOINT_${envIndex}`, '');
-            const rmEndpoint = getEnv(`YC_RM_ENDPOINT_${envIndex}`, '');
-            const customServiceEndpointResolver = isCustomResolver
-                ? new ServiceEndpointResolver(
-                      getServiceEndpointsMap({
-                          computeEndpoint: computeEndpoint || defaultComputeEndpoint,
-                          iamEndpoint: iamEndpoint || defaultIamEndpoint,
-                          rmEndpoint: rmEndpoint || defaultRmEndpoint,
-                      }),
-                  )
-                : undefined;
-
             envIndex++;
             await cleaner({
                 cloudId,
@@ -176,7 +136,6 @@ cron.schedule('0 12-18 * * 0-5', async () => {
                 saKeyId,
                 saPrivateKey,
                 folderIds,
-                customServiceEndpointResolver,
             });
         } catch (error) {
             break;
